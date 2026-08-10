@@ -1,0 +1,12 @@
+﻿# JetBrains / IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Dossiers de compilation .NET
+bin/
+obj/
+
+# Fichiers utilisateur/sensibles
+appsettings.Development.json

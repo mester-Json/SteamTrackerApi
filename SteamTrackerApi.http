@@ -1,0 +1,7 @@
+@SteamTrackerApi_HostAddress = http://localhost:5037
+@SteamId = Id Profile steam 
+
+### 1. Test profil joueur Steam
+GET {{SteamTrackerApi_HostAddress}}/api/steam/player/{{SteamId}}
+Accept: application/json
+
