@@ -7,13 +7,20 @@ using SteamTrackerApi.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-
 builder.Services.AddOpenApi();
 
-builder.Services.AddHttpClient("SteamClient", client =>
+builder.Services.AddHttpClient("SteamClient", (serviceProvider, client) =>
 {
-    var baseUrl = builder.Configuration["Steam:BaseUrl"] ?? "https://api.steampowered.com/";
+    var configuration = serviceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+    
+    var baseUrl = configuration["Steam:BaseUrl"] ?? "https://api.steampowered.com/";
     client.BaseAddress = new Uri(baseUrl);
+
+    var apiKey = configuration["SteamApiKey"] ?? configuration["Steam:ApiKey"];
+    if (string.IsNullOrWhiteSpace(apiKey))
+    {
+        throw new InvalidOperationException("La clé API Steam ('SteamApiKey' ou 'Steam:ApiKey') est manquante dans appsettings.json.");
+    }
 });
 
 builder.Services.AddScoped<ISteamService, SteamService>();
@@ -26,7 +33,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.MapControllers();
 
 app.Run();
