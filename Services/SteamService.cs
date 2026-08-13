@@ -13,16 +13,19 @@ namespace SteamTrackerApi.Services;
 public class SteamService : ISteamService
 {
     private readonly HttpClient _httpClient;
+    private readonly IConfiguration _configuration;
     private readonly string _apiKey;
     private readonly string _playerSummaryEndpoint;
     private readonly string _ownedGamesEndpoint;
 
-    public SteamService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public SteamService(HttpClient httpClient, IConfiguration configuration)
     {
-        _httpClient = httpClientFactory.CreateClient("SteamClient");
+        _httpClient = httpClient;
+        _configuration = configuration;
+
         _apiKey = configuration["SteamApiKey"] 
-            ?? configuration["Steam:ApiKey"] 
-            ?? throw new InvalidOperationException("SteamApiKey est manquante dans appsettings.json.");
+                   ?? configuration["Steam:ApiKey"] 
+                   ?? throw new InvalidOperationException("SteamApiKey est manquante dans appsettings.json.");
 
         _playerSummaryEndpoint = configuration["Steam:Endpoints:PlayerSummary"] ?? "ISteamUser/GetPlayerSummaries/v2/";
         _ownedGamesEndpoint = configuration["Steam:Endpoints:OwnedGames"] ?? "IPlayerService/GetOwnedGames/v1/";
@@ -36,7 +39,7 @@ public class SteamService : ISteamService
         if (!summaryResponse.IsSuccessStatusCode)
             return null;
 
-        var summaryStream = await summaryResponse.Content.ReadAsStreamAsync();
+        await using var summaryStream = await summaryResponse.Content.ReadAsStreamAsync();
         var steamSummary = await JsonSerializer.DeserializeAsync<SteamPlayerApiResponse>(summaryStream);
 
         var player = steamSummary?.Response?.Players?.FirstOrDefault();
@@ -52,7 +55,7 @@ public class SteamService : ISteamService
 
         if (gamesResponse.IsSuccessStatusCode)
         {
-            var gamesStream = await gamesResponse.Content.ReadAsStreamAsync();
+            await using var gamesStream = await gamesResponse.Content.ReadAsStreamAsync();
             var steamGames = await JsonSerializer.DeserializeAsync<SteamOwnedGamesApiResponse>(gamesStream);
 
             gameCount = steamGames?.Response?.GameCount ?? 0;
@@ -65,7 +68,6 @@ public class SteamService : ISteamService
         
         string formattedTimePlayed = $"{timeSpan.Days}j {timeSpan.Hours}h";
         string formattedTimePlayed2Week = $"{timeSpan2.Days}j {timeSpan2.Hours}h";
-        
 
         return new PlayerDto
         {
@@ -73,7 +75,7 @@ public class SteamService : ISteamService
             PersonalName = player.PersonaName ?? string.Empty,
             PictureAvatar = player.PictureAvatar ?? string.Empty,
             NumberGames = gameCount,
-            TimePlayed = formattedTimePlayed ,
+            TimePlayed = formattedTimePlayed,
             TimePlayed2Week = formattedTimePlayed2Week
         };
     }
